@@ -1,0 +1,52 @@
+from flask import Flask, request, jsonify
+
+app = Flask(name)
+
+monitors = {}
+
+@app.route('/monitor', methods=['POST'])
+def create_monitor():
+    data = request.json
+    monitor_id = data.get('id')
+    url = data.get('url')
+
+    if monitor_id and url:
+        monitors[monitor_id] = {'url': url, 'status': 'up'}
+        print(f"Monitor {monitor_id} created with URL: {url}")
+        return jsonify({'message': f'Monitor {monitor_id} created successfully'}), 201
+    else:
+        print("Invalid request parameters")
+        return jsonify({'error': 'Invalid request parameters'}), 400
+
+@app.route('/monitor/<monitor_id>', methods=['GET'])
+def get_monitor_status(monitor_id):
+    monitor = monitors.get(monitor_id)
+
+    if monitor:
+        print(f"Status of Monitor {monitor_id}: {monitor['status']}")
+        return jsonify({'status': monitor['status']}), 200
+    else:
+        print(f"Monitor {monitor_id} not found")
+        return jsonify({'error': 'Monitor not found'}), 404
+
+@app.route('/monitor/<monitor_id>', methods=['PUT'])
+def update_monitor_status(monitor_id):
+    monitor = monitors.get(monitor_id)
+
+    if monitor:
+        data = request.json
+        new_status = data.get('status')
+
+        if new_status:
+            monitor['status'] = new_status
+            print(f"Status of Monitor {monitor_id} updated to: {new_status}")
+            return jsonify({'message': f'Monitor {monitor_id} status updated successfully'}), 200
+        else:
+            print("Invalid request parameters")
+            return jsonify({'error': 'Invalid request parameters'}), 400
+    else:
+        print(f"Monitor {monitor_id} not found")
+        return jsonify({'error': 'Monitor not found'}), 404
+
+if name == 'main':
+    app.run(debug=True
