@@ -1,52 +1,61 @@
-from flask import Flask, request, jsonify
+import requests
+import time
+from datetime import datetime, timedelta
 
-app = Flask(name)
 
-monitors = {}
+def get_ping_value(host_address):
+    try:
+        response = requests.get(host_address)
+        response.raise_for_status()
 
-@app.route('/monitor', methods=['POST'])
-def create_monitor():
-    data = request.json
-    monitor_id = data.get('id')
-    url = data.get('url')
+        ping_ms = response.elapsed.total_seconds() * 1000  #
+        ping_value = max(min(int(ping_ms), 100), 1)
+        return ping_value
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {e}")
+        return 0
 
-    if monitor_id and url:
-        monitors[monitor_id] = {'url': url, 'status': 'up'}
-        print(f"Monitor {monitor_id} created with URL: {url}")
-        return jsonify({'message': f'Monitor {monitor_id} created successfully'}), 201
-    else:
-        print("Invalid request parameters")
-        return jsonify({'error': 'Invalid request parameters'}), 400
 
-@app.route('/monitor/<monitor_id>', methods=['GET'])
-def get_monitor_status(monitor_id):
-    monitor = monitors.get(monitor_id)
+def calculate_average_ping(ping_values):
+    return sum(ping_values) / len(ping_values) if ping_values else 0
 
-    if monitor:
-        print(f"Status of Monitor {monitor_id}: {monitor['status']}")
-        return jsonify({'status': monitor['status']}), 200
-    else:
-        print(f"Monitor {monitor_id} not found")
-        return jsonify({'error': 'Monitor not found'}), 404
 
-@app.route('/monitor/<monitor_id>', methods=['PUT'])
-def update_monitor_status(monitor_id):
-    monitor = monitors.get(monitor_id)
+def print_ping_report(time, avg_ping, status_code):
+    print(f"At {time}, Average Ping: {avg_ping}, Status Code: {status_code}")
 
-    if monitor:
-        data = request.json
-        new_status = data.get('status')
+def main(host_address):
+    ping_values_daily = []
+    total_duration_hours = 24
+    interval_seconds = 60  # Adjust as needed for more frequent updates
 
-        if new_status:
-            monitor['status'] = new_status
-            print(f"Status of Monitor {monitor_id} updated to: {new_status}")
-            return jsonify({'message': f'Monitor {monitor_id} status updated successfully'}), 200
-        else:
-            print("Invalid request parameters")
-            return jsonify({'error': 'Invalid request parameters'}), 400
-    else:
-        print(f"Monitor {monitor_id} not found")
-        return jsonify({'error': 'Monitor not found'}), 404
 
-if name == 'main':
-    app.run(debug=True
+
+    end_time = datetime.now() + timedelta(hours=total_duration_hours)
+
+
+
+    while datetime.now() < end_time:
+        ping_value = get_ping_value(host_address)
+        ping_values_daily.append(ping_value)
+
+
+
+        if len(ping_values_daily) == (total_duration_hours * 60) / interval_seconds:
+            current_time = datetime.now()
+            avg_ping_daily = calculate_average_ping(ping_values_daily)
+            print_ping_report(
+                current_time.strftime("%H:%M"), avg_ping_daily, ping_value
+            )
+
+
+
+            ping_values_daily = []  # Reset for the next 24 hours
+
+
+
+        time.sleep(interval_seconds)
+
+
+
+host_address = "http://example.com"
+main(host_address)
